@@ -192,7 +192,26 @@ module OctocatalogDiff
       raise OctocatalogDiff::Errors::CatalogError, 'Catalog does not appear to have been built' if !valid? && error_message.nil?
       raise OctocatalogDiff::Errors::CatalogError, error_message unless valid?
       return @catalog['data']['resources'] if @catalog['data'].is_a?(Hash) && @catalog['data']['resources'].is_a?(Array)
-      return @catalog['resources'] if @catalog['resources'].is_a?(Array)
+      if @catalog['resources'].is_a?(Array)
+        metadata = @catalog['metadata'] || {}
+        recursive_metadata = @catalog['recursive_metadata'] || {}
+        converted_metadata = metadata.map do |key, value|
+          Hash('type' => 'File', 'title' => key).merge(value).reject { |c_key, _| c_key == 'path' }
+        end
+        converted_recursive_metadata = recursive_metadata.map do |folder, puppet_res|
+          puppet_res.map do |_, changes|
+            changes.map do |change|
+              title = folder
+              title += '/'
+              title += change['relative_path']
+              Hash('type' => 'File', 'title' => title).merge(change).reject do |c_key, c_value|
+                c_key == 'path' || (c_value.is_a?(Hash) && c_value['type'] == 'ctime')
+              end
+            end
+          end
+        end.flatten
+        return @catalog['resources'] + converted_metadata + converted_recursive_metadata
+      end
       # This is a bug condition
       # :nocov:
       raise "BUG: catalog has no data::resources or ::resources array. Please report this. #{@catalog.inspect}"

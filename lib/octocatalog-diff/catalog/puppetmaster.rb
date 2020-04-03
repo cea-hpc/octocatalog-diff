@@ -84,7 +84,9 @@ module OctocatalogDiff
               'environment' => @options[:branch],
               'facts_format' => 'pson',
               'facts' => CGI.escape(@facts.fudge_timestamp.without('trusted').to_pson),
-              'transaction_uuid' => SecureRandom.uuid
+              'transaction_uuid' => SecureRandom.uuid,
+              'static_catalog' => 'true',
+              'checksum_type' => 'sha256.sha256lite.md5.md5lite.sha1.sha1lite.mtime.ctime.none'
             }
           }
         }
