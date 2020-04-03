@@ -14,13 +14,17 @@ OctocatalogDiff::Cli::Options::Option.newoption(:fact_file) do
       option_name: 'facts',
       desc: 'Override fact',
       datatype: '',
-      validator: ->(fact_file) { File.file?(fact_file) && (fact_file =~ /\.ya?ml$/ || fact_file =~ /\.json$/) },
+      validator: ->(fact_file) { File.file?(fact_file) && (fact_file =~ /\.ya?ml$/ || fact_file =~ /\.json$/ || fact_file =~ /^\/dev\/fd/) },
       translator: lambda do |fact_file|
         local_opts = { fact_file_string: File.read(fact_file) }
         if fact_file =~ /\.ya?ml$/
           OctocatalogDiff::Facts.new(local_opts.merge(backend: :yaml))
         elsif fact_file =~ /\.json$/
           OctocatalogDiff::Facts.new(local_opts.merge(backend: :json))
+        elsif fact_file =~ /^\/dev\/fd/
+          # fact_file id probably a bash process subtitution, assuming it's YAML ..
+          # You could then use <(ssh %NODE% puppet facts find --log_level crit --render-as yaml) as argument
+          OctocatalogDiff::Facts.new(local_opts.merge(backend: :yaml))
         else
           # :nocov:
           # Believed to be a bug condition since the validator should kick this out before it ever gets here.
